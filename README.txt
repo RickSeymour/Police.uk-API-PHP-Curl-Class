@@ -7,6 +7,8 @@ Feb2011 - PHP Programmer Available for hire! :)
 Simply require the police.php and call methods from the $POLICE object
 Returns FALSE or a json decoded associative array
 
+Either edit police.php and insert your username and password (Available from http://www.police.uk/api/docs/signup/) or create a PHP script "inc.credentials.php" and set variables $username & $password
+
 
 require_once('police.php');
 

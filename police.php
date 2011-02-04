@@ -8,7 +8,11 @@
 $username="";
 $password="";
 
+
+if(!function_exists('curl_init')){die("NO CURL!");}
+
 if(file_exists("inc.credentials.php")){include_once("inc.credentials.php");}
+
 Class PoliceUK{
     public $username=false;
     public $password=false;
