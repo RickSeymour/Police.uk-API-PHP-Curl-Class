@@ -11,7 +11,7 @@ $password="";
 
 if(!function_exists('curl_init')){die("NO CURL!");}
 
-if(file_exists("inc.credentials.php")){include_once("inc.credentials.php");}
+if(file_exists("inc.credentials.php")){include("inc.credentials.php");}
 
 Class PoliceUK{
     public $username=false;
@@ -20,25 +20,40 @@ Class PoliceUK{
     public $curl=null;
     public $returnraw=false;
 
-    function __construct($username=false,$password=false){
-        if(!$this->username){
-            if($username && strlen($username)){
-                $this->username=$username;
-            } else {
-                die("Username required for Police.uk".PHP_EOL);
-            }
-        }
-        if(!$this->password){
-            if($password && strlen($password)){
-                $this->password=$password;
-            } else {
-                die("Password required for Police.uk".PHP_EOL);
-            }
-        }
-        $this->curl = curl_init();
-        $this->setopt(CURLOPT_USERPWD,$this->username.":".$this->password);
-        $this->setopt(CURLOPT_RETURNTRANSFER, 1);
+	public $crime_type=null;
+	public $forces=null;
+
+    function PoliceUK($username=false,$password=false){
+        $this->curl_init();
+    	$this->curl_auth();
     }
+
+
+	function curl_auth(){
+		global $username,$password;
+		if(!$this->username){
+			if($username && strlen($username)){
+				$this->username=$username;
+			} else {
+				die("Username required for Police.uk".PHP_EOL);
+			}
+		}
+		if(!$this->password){
+			if($password && strlen($password)){
+				$this->password=$password;
+			} else {
+				die("Password required for Police.uk".PHP_EOL);
+			}
+		}
+		$this->setopt(CURLOPT_USERPWD,$this->username.":".$this->password);
+
+	}
+
+
+	function curl_init(){
+		$this->curl = curl_init();
+		$this->setopt(CURLOPT_RETURNTRANSFER, 1);
+	}
 
 
     function setopt($opt, $value) {
@@ -47,6 +62,7 @@ Class PoliceUK{
 
 
     function call($url){
+    	$this->curl_auth();
         $callurl=$this->baseUrl.$url;
         $this->setopt(CURLOPT_URL, $callurl);
         $result = curl_exec($this->curl);
@@ -69,7 +85,12 @@ Class PoliceUK{
 
 
     function lastupdated(){
-        return $this->call("crime-last-updated");
+        $date=$this->call("crime-last-updated");
+    	if($date && isset($date['date'])){
+    		return $date['date'];
+    	}else{
+    		return false;
+    	}
     }
 
 

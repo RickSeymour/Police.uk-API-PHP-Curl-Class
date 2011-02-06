@@ -1,7 +1,8 @@
 #!/usr/bin/env php
-<?php 
+<?php
 ini_set("display_errors",true);
 require_once("police.php");
+require_once("police.db.php");
 
 $POLICE->returnraw=true;
 
@@ -17,8 +18,7 @@ if(!method_exists($POLICE,$argv[1])){
 }
 
 
-array_shift($argv);
+array_shift($argv); //script name
 $call=array_shift($argv);
 
 echo call_user_func_array(array($POLICE,$call),$argv);
-
