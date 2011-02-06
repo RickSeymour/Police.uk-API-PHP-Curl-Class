@@ -99,64 +99,43 @@ Class PoliceUK{
     }
 
 
-    function force($force=false){
-        if(!$force){
-            return false;
-        }
+    function force($force){
         $call="forces/".$force;
         return $this->call($call);
     }
 
 
-    function neighbourhoods($force=false){
-        if(!$force){
-            return false;
-        }
+    function neighbourhoods($force){
         $call=$force."/neighbourhoods";
         return $this->call($call);
     }
 
 
-    function neighbourhood($force=false,$neighbourhood=false){
-        if(!$force || !$neighbourhood){
-            die("Force & Neighbourhood required".PHP_EOL);
-        }
+    function neighbourhood($force, $neighbourhood){
         $call=$force."/".$neighbourhood;
         return $this->call($call);
     }
 
 
-    function neighbourhood_crimes($force=false,$neighbourhood=false){
-        if(!$force || !$neighbourhood){
-            die("Force & Neighbourhood required".PHP_EOL);
-        }
+    function neighbourhood_crimes($force, $neighbourhood){
         $call=$force."/".$neighbourhood."/";
         return $this->call($call);
     }
 
 
-    function neighbourhood_team($force=false,$neighbourhood=false){
-        if(!$force || !$neighbourhood){
-            die("Force & Neighbourhood required".PHP_EOL);
-        }
+    function neighbourhood_team($force, $neighbourhood){
         $call=$force."/".$neighbourhood."/people";
         return $this->call($call);
     }
 
 
-    function neighbourhood_events($force=false,$neighbourhood=false){
-        if(!$force || !$neighbourhood){
-            die("Force & Neighbourhood required".PHP_EOL);
-        }
+    function neighbourhood_events($force, $neighbourhood){
         $call=$force."/".$neighbourhood."/events";
         return $this->call($call);
     }
 
 
-    function neighbourhood_locate($latitude=false,$longitude=false){
-        if(!$latitude || !$longitude){
-            die("Latitude & Longitude required".PHP_EOL);
-        }
+    function neighbourhood_locate($latitude, $longitude){
         $call="locate-neighbourhood?q=".$latitude.",".$longitude;
         return $this->call($call);
     }
@@ -167,19 +146,13 @@ Class PoliceUK{
     }
 
 
-    function crime_locate($latitude=false,$longitude=false){
-        if(!$latitude || !$longitude){
-            die("Latitude & Longitude required".PHP_EOL);
-        }
+    function crime_locate($latitude, $longitude){
         $call="crimes-street/all-crime?lat=".$latitude."&lng=".$longitude;
         return $this->call($call);
     }
 
 
-    function crime_neighbourhood($force=false,$neighbourhood=false){
-        if(!$force || !$neighbourhood){
-            die("Force & Neighbourhood required".PHP_EOL);
-        }
+    function crime_neighbourhood($force, $neighbourhood){
         $call=$force."/".$neighbourhood."/crime";
         return $this->call($call);
     }
