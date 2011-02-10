@@ -5,27 +5,29 @@ $db_username="police";
 $db_password="police";
 $db_host    ="localhost";
 
-if(file_exists("inc.credentials.php")){include("inc.credentials.php");}
-require_once("police.php");
+if(file_exists('./inc.credentials.php')){
+    include('./inc.credentials.php');
+}
+require_once("./police.php");
 
 
 class PoliceUKDB extends PoliceUK{
-    public $db      =null;
-    public $debug   =false;
-    public $commondb=null;
-    public $dataBaseUrl="http://crimemapper2.s3.amazonaws.com/frontend/crime-data/";
+    public $db          =null;
+    public $debug       =false;
+    public $commondb    =null;
+    public $dataBaseUrl ="http://crimemapper2.s3.amazonaws.com/frontend/crime-data/";
+    protected $datadir  ="data";
 
     function __construct($db_host,$db_username,$db_password,$db_db){
         $this->db=mysqli_connect($db_host,$db_username,$db_password,$db_db);
         if($this->db->connect_error){
             die("Database connect error: ".$this->db->connect_error);
         }
-        global $username,$password;
-        parent::PoliceUK($username,$password);
+        parent::PoliceUK();
     }
 
 
-    public function get_enum($table=false,$column=false){
+    protected function get_enum($table=false,$column=false){
         $table=preg_replace('/[^a-zA-Z0-9_+-]/i','',$table);
         $column=preg_replace('/[^a-zA-Z0-9_+-]/i','',$column);
         $sql = sprintf("SHOW COLUMNS FROM %s LIKE '%s'",$table,$column);
@@ -40,7 +42,7 @@ class PoliceUKDB extends PoliceUK{
     }
 
 
-    function crime_categories_update(){
+    function db_crime_categories(){
         $r=$this->crime_categories();
         if($r){
             $urls=Array();
@@ -63,7 +65,7 @@ class PoliceUKDB extends PoliceUK{
     }
 
 
-    function forces_update(){
+    function db_forces(){
         $r=$this->forces();
         if($r){
             $ids=Array();
@@ -90,7 +92,7 @@ class PoliceUKDB extends PoliceUK{
     }
 
 
-    function neighbourhoods_update(){
+    function db_neighbourhoods(){
         $r=$this->forces_local();
         if(!count($r)){
             die("No entries in Local Forces DB, run forces_update()");
@@ -99,12 +101,12 @@ class PoliceUKDB extends PoliceUK{
             if($this->debug){
                 echo $force.PHP_EOL;
             }
-            $this->neighbourhood_update($force);
+            $this->db_neighbourhood($force);
         }
     }
 
 
-    function neighbourhood_update($force){
+    function db_neighbourhood($force){
         $r=$this->neighbourhoods($force);
         if($r){
             foreach($r as $type){
@@ -112,14 +114,19 @@ class PoliceUKDB extends PoliceUK{
                     echo $type['id']."-".$type['name'];
                     echo PHP_EOL;
                 }
-
                 $this->db->query("INSERT IGNORE into neighbourhoods (neighbourhood_id,neighbourhood_name,force_id) VALUES('".$type['id']."','".$type['name']."','".$force."')");
             }
+        }else{
+            return false;
         }
     }
 
 
-    function forces_local($verbose=false){
+    /**
+    * Local return array of police forces
+    * @return array
+    */
+    function local_forces($verbose=false){
         if($verbose){
             $results=$this->db->query("SELECT force_id,force_name FROM forces ORDER BY force_id ASC");
         }else{
@@ -136,12 +143,16 @@ class PoliceUKDB extends PoliceUK{
             }
             return $forces;
         }else{
-            return array();
+            return false;
         }
     }
 
 
-    function crime_categories_local($verbose=false){
+    /**
+    * Local return array of crime categories
+    * @return array
+    */
+    function local_crime_categories($verbose=false){
         if($verbose){
             $results=$this->db->query("SELECT crime_type_url,crime_type_name FROM crime_type ORDER BY crime_type_url ASC");
         }else{
@@ -158,30 +169,39 @@ class PoliceUKDB extends PoliceUK{
             }
             return $crime_type;
         }else{
-            return array();
+            return false;
         }
     }
 
 
-    function csv_checkdir(){
-        if(!is_dir('./csv')){
-            die("./csv not found. Create directory");
-        }elseif(!is_writeable('./csv')){
-            die('./csv not writable');
+    /**
+    * CSV Directory check
+    */
+    protected function datafetch_checkdir(){
+        if(!is_dir(__DIR__."/".$this->datadir)){
+            die(__DIR__."/".$this->datadir." not found. Create directory");
+        }elseif(!is_writeable(__DIR__."/".$this->datadir)){
+            die(__DIR__.'/'.$this->datadir.' not writable');
         }
     }
 
 
-    function month_fetch(){
+    /**
+    * function call lastupdated then formatted to year-month
+    */
+    function lastupdated_month(){
         $date=$this->lastupdated();
         $month=date("Y-m",strtotime($date));
         return $month;
     }
 
 
-    function csv_fetch($month,$force){
-        $this->csv_checkdir();
-        $savepath='./csv/'.$month.'-'.$force.'.zip';
+    /**
+    * function remote fetch CSV for month-force. Write in CSV directory
+    */
+    protected function datafetch_csv_fetch($month,$force){
+        $this->datafetch_checkdir();
+        $savepath=__DIR__."/".$this->datadir.'/'.$month.'-'.$force.'.zip';
         if(file_exists($savepath)){
             return;
         }
@@ -189,15 +209,20 @@ class PoliceUKDB extends PoliceUK{
         $this->curl_init();
         $this->setopt(CURLOPT_URL, $callurl);
         $result = curl_exec($this->curl);
-        $info=curl_getinfo($this->curl);
+        $info = curl_getinfo($this->curl);
         $fp = fopen($savepath,'w+');
         fwrite($fp,$result);
         fclose($fp);
     }
 
 
-    function csv_unzip($month,$force){
-        $file='./csv/'.$month.'-'.$force;
+    /**
+    * function unzip zip->csv for month-force
+    * @return boolean
+    */
+    protected function datafetch_csv_unzip($month,$force){
+        $this->csv_checkdir();
+        $file=__DIR__.'/'.$this->datadir.'/'.$month.'-'.$force;
         if(!file_exists($file.'.zip')){
             die("File does not exist: ".$file.".zip");
         }else if(file_exists($file.'-street.csv')){
@@ -208,7 +233,7 @@ class PoliceUKDB extends PoliceUK{
         }
         $zip = new ZipArchive();
         if($zip->open($file.'.zip')===true){
-            $zip->extractTo('./csv');
+            $zip->extractTo(__DIR__."/".$this->datadir);
             $zip->close();
             return true;
         }else{
@@ -217,8 +242,20 @@ class PoliceUKDB extends PoliceUK{
     }
 
 
-    function csv_read($month,$force){
-        $file='./csv/'.$month.'-'.$force.'-street.csv';
+    /**
+    * datafetch_csv_read - insert csv into crimes table
+    * @param string force
+    * @param string month
+    * @return int count rows
+    * Rows
+    *   month       0
+    *   easting     3
+    *   northing    4
+    *   crime_type  6
+    *   context     7   (Not used)
+    */
+    protected function datafetch_csv_writedb($month,$force){
+        $file=sprintf(__DIR__."/".$this->datadir.'/%s-%s-street.csv',$month,$force);
         $fc=file($file);
         if(!count($fc)){
             die("Nothing in file: ".$file);
@@ -245,13 +282,16 @@ class PoliceUKDB extends PoliceUK{
     }
 
 
-    function csv_force($month,$force){
+    /**
+    * Wrapper csv_fetch,csv_unzip,csv_read
+    */
+    function datafetch_force($month,$force){
         if($this->debug){
             echo $force;
         }
-        $this->csv_fetch($month,$force);
-        $this->csv_unzip($month,$force);
-        $crimes=$this->csv_read($month,$force);
+                $this->datafetch_csv_fetch($month,$force);
+                $this->datafetch_csv_unzip($month,$force);
+        $crimes=$this->datafetch_csv_writedb($month,$force);
         if($this->debug){
             echo " - ".$crimes;
             echo PHP_EOL;
@@ -259,19 +299,25 @@ class PoliceUKDB extends PoliceUK{
     }
 
 
-    function csv_read_all($month=false){
+    /**
+    * Wrapper csv_force for ALL forces
+    */
+    function datafetch_allforces($month=false){
         if(!$month){
             $month=$this->month_fetch();
         }
-        $this->crime_type=$this->crime_categories_local(true);
-        $this->forces=$this->forces_local(true);
+        $this->crime_type=$this->local_crime_categories(true);
+        $this->forces=$this->local_forces(true);
         foreach($this->forces as $force_id=>$force_name){
-            $this->csv_force($month,$force_id);
+            $this->datafetch_force($month,$force_id);
         }
     }
 
 
-    function force_extra($force){
+    /**
+    * fetches additional force information and stores in forces table, ie twitter,facebook etc
+    */
+    function db_force_extra($force){
         $r=$this->force($force);
         if($this->debug){
             echo $force;
@@ -314,42 +360,14 @@ class PoliceUKDB extends PoliceUK{
     }
 
 
-    function force_extra_all(){
+    /**
+    * wrapper for force_extra for ALL forces
+    */
+    function db_force_extra_all(){
         $this->forces=$this->forces_local();
         foreach($this->forces as $force){
-            $this->force_extra($force);
+            $this->db_force_extra($force);
         }
-    }
-
-
-    function totals(){
-        $res=$this->db->query("SELECT CONCAT(year(dt),'-',month(dt)) as month,force_id,crime_type,count(id) as total FROM `crimes` GROUP BY force_id,crime_type order by force_id,crime_type");
-        if($res){
-            $fp=fopen('./spreadsheets/police.uk.totals.csv','w+');
-            $buf="month,force,crime_type,total".PHP_EOL;
-            while($r=$res->fetch_assoc()){
-                $buf.=$r['month'].",".$r['force_id'].",".$r['crime_type'].",".$r['total'].PHP_EOL;
-            }
-            fwrite($fp,$buf);
-            fclose($fp);
-        }
-    }
-
-
-
-    function gridreference_group(){
-        $sql="SELECT SQL_NO_CACHE eastings,northings FROM `crimes` where postcode is null group by eastings,northings";
-        $res=$this->db->query($sql);
-        $refarray=Array();
-        while($r=$res->fetch_assoc()){
-            set_time_limit(10);
-            if($this->debug){
-                echo $r['eastings']."-".$r['northings'];
-                echo PHP_EOL;
-            }
-            $refarray[]=Array('eastings'=>$r['eastings'],'northings'=>$r['northings']);
-        }
-        return $refarray;
     }
 
 
@@ -359,18 +377,45 @@ class PoliceUKDB extends PoliceUK{
 /* End of Class */
 $POLICE=new PoliceUKDB($db_host,$db_username,$db_password,$db_db);
 
-$POLICE->debug=true;
+//$POLICE->debug=true;
 
 
 /*
  * This file is not included in this distribution as it uses:-
- *       My implementation of Ordnance Survey CodePointOpen 
+ *       My implementation of Ordnance Survey CodePointOpen
  *      &
  *       A OSGB Grid Reference to Latitude / Longitude Converter
  *          http://svn.geograph.org.uk/svn/trunk/libs/geograph/conversionslatlong.class.php
  *          or
  *          http://www.jstott.me.uk/phpcoord/phpcoord-2.3.zip
  */
-if(file_exists('police.custom.php')){include_once('police.custom.php');}
+if(file_exists('./police.custom.php')){
+    include_once('./police.custom.php');
+}
 
 
+/**
+ * functions contained within police.custom.php
+ *      convert_en_latlng()         Converts OSGB to LatLng
+ *      convert_nearestpostcode()   From LatLng - Find closest Postcode
+ *      update_location             Update Crimes Table with Location information + postcode
+ *
+ * Convert easting northing return array with both latlng&eastnorth
+ * @param int eastings
+ * @param int northings
+ * @return array|false
+
+function convert_en_latlng($eastings,$northings){
+    $ConversionsLatLong=new ConversionsLatLong();
+    $llarray=$ConversionsLatLong->osgb36_to_wgs84($eastings,$northings);
+    $latitude=$llarray[0];
+    $longitude=$llarray[1];
+    $retarray=array(
+        'latitude'=>$latitude,
+        'longitude'=>$longitude,
+        'eastings'=>$eastings,
+        'northings'=>$northings,
+    );
+    return $retarray;
+}
+*/

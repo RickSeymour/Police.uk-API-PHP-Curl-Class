@@ -1,5 +1,9 @@
 inc.credentials.php
-csv/*
+data/*
 spreadsheets/*
+
 Police.UK API.PHPEditProject
 police.custom.php
+
+data.*.php
+test.*.php

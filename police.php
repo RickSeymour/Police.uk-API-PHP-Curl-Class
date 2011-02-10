@@ -1,7 +1,8 @@
 <?php
-/*
+/**
  * Curl Wrapper for Police.uk API
- * Rick Seymour.com
+ * @author RickSeymour.com
+ * @link http://www.rickseymour.com
  */
 
 
@@ -11,155 +12,266 @@ $password="";
 
 if(!function_exists('curl_init')){die("NO CURL!");}
 
-if(file_exists("inc.credentials.php")){include("inc.credentials.php");}
+if(file_exists(__DIR__."/inc.credentials.php")){
+    include(__DIR__."/inc.credentials.php");
+}
 
+
+/**
+ * Police.UK Curl Class
+ */
 Class PoliceUK{
-    public $username=false;
-    public $password=false;
-    public $baseUrl="http://policeapi2.rkh.co.uk/api/";
-    public $curl=null;
-    public $returnraw=false;
+    protected $baseUrl  ="http://policeapi2.rkh.co.uk/api/";
+    private $username   =false;
+    private $password   =false;
+    public $curl        =null;
+    public $returnraw   =false;
 
-	public $crime_type=null;
-	public $forces=null;
+    public $crime_type  =null;
+    public $forces      =null;
 
-    function PoliceUK($username=false,$password=false){
+
+/**
+ * Contructor
+ */
+    function PoliceUK(){
         $this->curl_init();
-    	$this->curl_auth();
+        $this->curl_auth();
     }
 
 
-	function curl_auth(){
-		global $username,$password;
-		if(!$this->username){
-			if($username && strlen($username)){
-				$this->username=$username;
-			} else {
-				die("Username required for Police.uk".PHP_EOL);
-			}
-		}
-		if(!$this->password){
-			if($password && strlen($password)){
-				$this->password=$password;
-			} else {
-				die("Password required for Police.uk".PHP_EOL);
-			}
-		}
-		$this->setopt(CURLOPT_USERPWD,$this->username.":".$this->password);
-
-	}
-
-
-	function curl_init(){
-		$this->curl = curl_init();
-		$this->setopt(CURLOPT_RETURNTRANSFER, 1);
-	}
+/**
+ * Authorises the CURL object
+ * @global username,password
+ */
+    protected function curl_auth(){
+        global $username,$password;
+        if(!$this->username){
+            if($username && strlen($username)){
+                $this->username=$username;
+            } else {
+                die("Username required for Police.uk".PHP_EOL);
+            }
+        }
+        if(!$this->password){
+            if($password && strlen($password)){
+                $this->password=$password;
+            } else {
+                die("Password required for Police.uk".PHP_EOL);
+            }
+        }
+        $this->setopt(CURLOPT_USERPWD,$this->username.":".$this->password);
+    }
 
 
-    function setopt($opt, $value) {
+/**
+ * Sets up Curl
+ */
+    protected function curl_init(){
+        $this->curl = curl_init();
+        $this->setopt(CURLOPT_RETURNTRANSFER, 1);
+    }
+
+
+/**
+ * Transfers Options to Curl object
+ * @param string OPT
+ * @param mixed value
+ */
+    protected function setopt($opt, $value) {
         return curl_setopt($this->curl, $opt, $value);
     }
 
 
-    function call($url){
-    	$this->curl_auth();
+/**
+ * Make the Curl Call
+ * @param string url
+ * @return array|false
+ */
+    protected function call($url){
+        $this->curl_auth();
         $callurl=$this->baseUrl.$url;
         $this->setopt(CURLOPT_URL, $callurl);
         $result = curl_exec($this->curl);
-        $info=curl_getinfo($this->curl);
-        if($info['http_code']==200){
+        $code=curl_getinfo($this->curl,CURLINFO_HTTP_CODE);
+        if($code==200){
             if($this->returnraw){
                 return $result;
             }
-            $j=json_decode($result,TRUE);
-            return $j;
-        } else if($info['http_code']==401){
+            return json_decode($result,TRUE);
+        } else if($code==401){
             die('Username / Password Incorrect'.PHP_EOL);
-        } else if($info['http_code']==404){
-            error_log('PoliceUKAPI Error - '.$info['url']);
-            die('Error - '.$info['url'].PHP_EOL);
+        } else if($code==404){
+            error_log('PoliceUKAPI Error - '.$callurl);
+            die('Error - '.$callurl.PHP_EOL);
         } else {
             return false;
         }
     }
 
 
-    function lastupdated(){
+/**
+ * function call "crime-last-updated"
+ * @return string|false
+ * @link http://www.police.uk/api/docs/method/crime-last-updated/
+ */
+    public function lastupdated(){
         $date=$this->call("crime-last-updated");
-    	if($date && isset($date['date'])){
-    		return $date['date'];
-    	}else{
-    		return false;
-    	}
+        if($date && isset($date['date'])){
+            return $date['date'];
+        }else{
+            return false;
+        }
     }
 
 
-    function forces(){
+/**
+ * function call "forces"
+ * @return array|false
+ * @link http://www.police.uk/api/docs/method/forces/
+ */
+    public function forces(){
         return $this->call("forces");
     }
 
 
-    function force($force){
-        $call="forces/".$force;
-        return $this->call($call);
+/**
+ * function call "forces" (specific force)
+ * @param string force
+ * @return array|false
+ * @link http://www.police.uk/api/docs/method/force/
+ */
+    public function force($force){
+        return $this->call(sprintf(
+            'forces/%s',
+            urlencode($force)
+        ));
     }
 
 
-    function neighbourhoods($force){
-        $call=$force."/neighbourhoods";
-        return $this->call($call);
+/**
+ * function call "neighbourhoods"
+ * @param string force
+ * @return array|false
+ * @link http://www.police.uk/api/docs/method/neighbourhoods/
+ */
+    public function neighbourhoods($force){
+        return $this->call(sprintf(
+            '%s/neighbourhoods',
+            urlencode($force)
+        ));
     }
 
 
-    function neighbourhood($force, $neighbourhood){
-        $call=$force."/".$neighbourhood;
-        return $this->call($call);
+/**
+ * function call "neighbourhood"
+ * Specific verbose information on neighbourhood
+ * @param string force
+ * @param string neighbourhood
+ * @return array|false
+ * @link http://www.police.uk/api/docs/method/neighbourhood/
+ */
+    public function neighbourhood($force, $neighbourhood){
+        return $this->call(sprintf(
+            '%s/%s',
+            urlencode($force),
+            urlencode($neighbourhood)
+        ));
     }
 
 
-    function neighbourhood_crimes($force, $neighbourhood){
-        $call=$force."/".$neighbourhood."/";
-        return $this->call($call);
+/**
+ * function call "neighbourhood-team"
+ * @param string force
+ * @param string neighbourhood
+ * @return array|false
+ * @link http://www.police.uk/api/docs/method/neighbourhood-team/
+ */
+    public function neighbourhood_team($force, $neighbourhood){
+        return $this->call(sprintf(
+            '%s/%s/people',
+            urlencode($force),
+            urlencode($neighbourhood)
+        ));
     }
 
 
-    function neighbourhood_team($force, $neighbourhood){
-        $call=$force."/".$neighbourhood."/people";
-        return $this->call($call);
+/**
+ * function call "neighbourhood-events"
+ * @param string force
+ * @param string neighbourhood
+ * @return array|false
+ * @link http://www.police.uk/api/docs/method/neighbourhood-events/
+ */
+    public function neighbourhood_events($force, $neighbourhood){
+        return $this->call(sprintf(
+            '%s/%s/events',
+            urlencode($force),
+            urlencode($neighbourhood)
+        ));
     }
 
 
-    function neighbourhood_events($force, $neighbourhood){
-        $call=$force."/".$neighbourhood."/events";
-        return $this->call($call);
+/**
+ * function call "neighbourhood-locate
+ * @param float latitude
+ * @param float longitude
+ * @return array|false
+ * @link http://www.police.uk/api/docs/method/neighbourhood-locate/
+ */
+    public function neighbourhood_locate($latitude, $longitude){
+        return $this->call(sprintf(
+            'locate-neighbourhood?q=%s,%s',
+            $latitude,
+            $longitude
+        ));
     }
 
 
-    function neighbourhood_locate($latitude, $longitude){
-        $call="locate-neighbourhood?q=".$latitude.",".$longitude;
-        return $this->call($call);
-    }
-
-
-    function crime_categories(){
+/**
+ * function call "crime-categories"
+ * @return array|false
+ * @link http://www.police.uk/api/docs/method/crime-categories/
+ */
+    public function crime_categories(){
         return $this->call("crime-categories");
     }
 
 
-    function crime_locate($latitude, $longitude){
-        $call="crimes-street/all-crime?lat=".$latitude."&lng=".$longitude;
-        return $this->call($call);
+/**
+ * function call "crime-locate"/"crime-street"
+ * @param float latitude
+ * @param float longitude
+ * @return array|false
+ * @link http://www.police.uk/api/docs/method/crime-street/
+ */
+    public function crime_locate($latitude, $longitude){
+        return $this->call(sprintf(
+            'crimes-street/all-crime?lat=%s&lng=%s',
+            $latitude,
+            $longitude
+        ));
     }
 
 
-    function crime_neighbourhood($force, $neighbourhood){
-        $call=$force."/".$neighbourhood."/crime";
-        return $this->call($call);
+/**
+ * function call "neighbourhood-crime"
+ * @param string force
+ * @param string neighbourhood
+ * @return array|false
+ * @link http://www.police.uk/api/docs/method/neighbourhood-crimes/
+ */
+    public function crime_neighbourhood($force, $neighbourhood){
+        return $this->call(sprintf(
+            '%s/%s/crime',
+            urlencode($force),
+            urlencode($neighbourhood)
+        ));
     }
 
 
 
 }
 /* END OF CLASS */
-$POLICE=new PoliceUK($username,$password);
+$POLICE=new PoliceUK();
 
