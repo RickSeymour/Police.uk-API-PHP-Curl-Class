@@ -5,10 +5,10 @@ $db_username="police";
 $db_password="police";
 $db_host    ="localhost";
 
-if(file_exists('./inc.credentials.php')){
-    include('./inc.credentials.php');
+if(file_exists('inc.credentials.php')){
+    include('inc.credentials.php');
 }
-require_once("./police.php");
+require_once("police.php");
 
 
 class PoliceUKDB extends PoliceUK{
@@ -389,8 +389,8 @@ $POLICE=new PoliceUKDB($db_host,$db_username,$db_password,$db_db);
  *          or
  *          http://www.jstott.me.uk/phpcoord/phpcoord-2.3.zip
  */
-if(file_exists('./police.custom.php')){
-    include_once('./police.custom.php');
+if(file_exists('police.custom.php')){
+    include_once('police.custom.php');
 }
 
 
