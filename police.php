@@ -26,7 +26,7 @@ Class PoliceUK{
     private $password   =false;
     public $curl        =null;
     public $returnraw   =false;
-
+    public $debug       =false;
     public $crime_type  =null;
     public $forces      =null;
 
@@ -93,15 +93,18 @@ Class PoliceUK{
         $callurl=$this->baseUrl.$url;
         $this->setopt(CURLOPT_URL, $callurl);
         $result = curl_exec($this->curl);
-        $code=curl_getinfo($this->curl,CURLINFO_HTTP_CODE);
-        if($code==200){
+        $curlinfo=curl_getinfo($this->curl);
+        if($this->debug){
+            $this->curlinfo=$curlinfo;
+        }
+        if($curlinfo['http_code']==200){
             if($this->returnraw){
                 return $result;
             }
             return json_decode($result,TRUE);
-        } else if($code==401){
+        } else if($curlinfo['http_code']==401){
             die('Username / Password Incorrect'.PHP_EOL);
-        } else if($code==404){
+        } else if($curlinfo['http_code']==404){
             error_log('PoliceUKAPI Error - '.$callurl);
             die('Error - '.$callurl.PHP_EOL);
         } else {

@@ -13,7 +13,6 @@ require_once("police.php");
 
 class PoliceUKDB extends PoliceUK{
     public $db          =null;
-    public $debug       =false;
     public $commondb    =null;
     public $dataBaseUrl ="http://crimemapper2.s3.amazonaws.com/frontend/crime-data/";
     protected $datadir  ="data";
@@ -121,6 +120,16 @@ class PoliceUKDB extends PoliceUK{
         }
     }
 
+
+    function db_neighbourhood_extra($force,$neighbourhood){
+        $r=$this->neighbourhood($force,$neighbourhood);
+        if($r){
+            print_r($r);
+            return true;
+        }else{
+            return false;
+        }
+    }
 
     /**
     * Local return array of police forces
