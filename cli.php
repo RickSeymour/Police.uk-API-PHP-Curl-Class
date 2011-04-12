@@ -20,4 +20,6 @@ if(!method_exists($POLICE,$call)){
 // Use returnraw to prevent json decoding
 //$POLICE->returnraw=true;
 
+$POLICE->debug=true;
+
 echo call_user_func_array(array($POLICE,$call),$argv);

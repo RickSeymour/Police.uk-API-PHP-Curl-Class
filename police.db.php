@@ -14,6 +14,7 @@ require_once("police.php");
 class PoliceUKDB extends PoliceUK{
     public $db          =null;
     public $commondb    =null;
+    public $custom      =false;
     public $dataBaseUrl ="http://crimemapper2.s3.amazonaws.com/frontend/crime-data/";
     protected $datadir  ="data";
 
@@ -123,7 +124,7 @@ class PoliceUKDB extends PoliceUK{
 
     function db_neighbourhood_extra($force,$neighbourhood){
         $n=$this->neighbourhood($force,$neighbourhood);
-        if($n{
+        if($n){
             if(isset($n['contact_details']) && isset($n['contact_details']['web'])){
                 $contact_details_web=$n['contact_details']['web'];
             }else{$contact_details_web=NULL;}
@@ -236,8 +237,8 @@ class PoliceUKDB extends PoliceUK{
     */
     protected function datafetch_csv_fetch($month,$force){
         $this->datafetch_checkdir();
-        $savepath=__DIR__."/".$this->datadir.'/'.$month.'-'.$force.'.zip';
-        if(file_exists($savepath)){
+        $savepath=__DIR__."/".$this->datadir.'/'.$month.'-'.$force;
+        if(file_exists($savepath.'.zip') || file_exists($savepath.'-street.csv')){
             return;
         }
         $callurl=$this->dataBaseUrl.$month.'/'.$month.'-'.$force.'-street.zip';
@@ -258,10 +259,10 @@ class PoliceUKDB extends PoliceUK{
     protected function datafetch_csv_unzip($month,$force){
         $this->datafetch_checkdir();
         $file=__DIR__.'/'.$this->datadir.'/'.$month.'-'.$force;
-        if(!file_exists($file.'.zip')){
+        if(!file_exists($file.'.zip') && !file_exists($file.'-street.csv')){
             die("File does not exist: ".$file.".zip");
         }else if(file_exists($file.'-street.csv')){
-            return;
+            return true;
         }
         if(!class_exists("ZipArchive")){
             die ("PHP not compiled with ZIP Class (--enable-zip)");
@@ -304,14 +305,39 @@ class PoliceUKDB extends PoliceUK{
             $northing=$r[4];
             $crime_type=@array_search($r[6],$this->crime_type);
             $context=$r[7];
-            $this->db->query("INSERT INTO crimes (dt,eastings,northings,force_id,crime_type,context) VALUES(
+            
+            $q="INSERT INTO crimes (";
+            $k="dt,eastings,northings,force_id,crime_type,context";
+            $v=") VALUES(
                 '".$this->db->real_escape_string($month)."-01',
                 '".$this->db->real_escape_string($easting)."',
                 '".$this->db->real_escape_string($northing)."',
                 '".$this->db->real_escape_string($force)."',
                 '".$this->db->real_escape_string($crime_type)."',
                 '".$this->db->real_escape_string($context)."'
-                )");
+                ";
+
+            if($this->custom){
+                $ret=convert_en_latlng($easting,$northing);
+                $retps=convert_nearestpostcode($ret);
+                if($retps){
+                    $postcode=$retps['postcode'];}else{$postcode=NULL;}
+
+                $latitude=$ret['latitude'];
+                $longitude=$ret['longitude'];
+                //$location="()";
+                $point="Point(".$ret['longitude']." ".$ret['latitude'].")";
+                $k.=",latitude,longitude,postcode,location";
+                $v.=sprintf(",'".$this->db->real_escape_string($latitude)."','".$longitude."','".$postcode."',GeomFromText('%s')",$point);
+            }
+
+            $q.=$k.$v.")";
+            $this->db->query($q);
+            if($this->db->error){
+                print_r($r);
+                echo $q;
+                die("DB Err - ".$this->db->error);
+            }
         }
         return count($fc);
     }
@@ -426,6 +452,7 @@ $POLICE=new PoliceUKDB($db_host,$db_username,$db_password,$db_db);
  */
 if(file_exists('police.custom.php')){
     include_once('police.custom.php');
+    $POLICE->custom=true;
 }
 
 
