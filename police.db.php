@@ -228,6 +228,9 @@ class PoliceUKDB extends PoliceUK{
     function lastupdated_month(){
         $date=$this->lastupdated();
         $month=date("Y-m",strtotime($date));
+        if($this->debug){
+            echo $month.PHP_EOL;
+        }
         return $month;
     }
 
@@ -380,6 +383,15 @@ class PoliceUKDB extends PoliceUK{
                 $this->datafetch_force($month,$force_id,TRUE);
             }
         }
+    }
+
+
+    /**
+     * Wrapper for datafetch
+     * Simple just to have an "update" function
+     */
+    function update(){
+        $this->datafetch_allforces();
     }
 
 
