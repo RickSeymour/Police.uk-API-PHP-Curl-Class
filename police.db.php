@@ -246,7 +246,7 @@ class PoliceUKDB extends PoliceUK{
         $this->setopt(CURLOPT_URL, $callurl);
         $result = curl_exec($this->curl);
         $info = curl_getinfo($this->curl);
-        $fp = fopen($savepath,'w+');
+        $fp = fopen($savepath.".zip",'w+');
         fwrite($fp,$result);
         fclose($fp);
     }
