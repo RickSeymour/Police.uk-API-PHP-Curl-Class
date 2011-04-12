@@ -122,10 +122,36 @@ class PoliceUKDB extends PoliceUK{
 
 
     function db_neighbourhood_extra($force,$neighbourhood){
-        $r=$this->neighbourhood($force,$neighbourhood);
-        if($r){
-            print_r($r);
-            return true;
+        $n=$this->neighbourhood($force,$neighbourhood);
+        if($n{
+            if(isset($n['contact_details']) && isset($n['contact_details']['web'])){
+                $contact_details_web=$n['contact_details']['web'];
+            }else{$contact_details_web=NULL;}
+            if(isset($n['contact_details']) && isset($n['contact_details']['telephone'])){
+                $contact_details_telephone=$n['contact_details']['telephone'];
+            }else{$contact_details_telephone=NULL;}
+
+            if(isset($n['centre'])){
+                $centre="Point(".$n['centre']['longitude']." ".$n['centre']['latitude'].")";
+            }else{$centre=null;}
+
+            if(isset($n['population'])){
+                $population=(int)$n['population'];
+            }else{$population=null;}
+
+            $sql=sprintf(
+                "UPDATE neighbourhoods set population=%d,contact_web='%s',contact_telephone='%s',location=GeomFromText('%s') where neighbourhood_id='%s' AND force_id='%s'",
+                $population,$contact_details_web,$contact_details_telephone,$centre,$r['neighbourhood_id'],$r['force_id']
+            );
+
+
+            $this->db->query($sql);
+
+            if($this->db->error){
+                return false;
+            }else{
+                return true;
+            }
         }else{
             return false;
         }
@@ -230,7 +256,7 @@ class PoliceUKDB extends PoliceUK{
     * @return boolean
     */
     protected function datafetch_csv_unzip($month,$force){
-        $this->csv_checkdir();
+        $this->datafetch_checkdir();
         $file=__DIR__.'/'.$this->datadir.'/'.$month.'-'.$force;
         if(!file_exists($file.'.zip')){
             die("File does not exist: ".$file.".zip");
@@ -313,7 +339,7 @@ class PoliceUKDB extends PoliceUK{
     */
     function datafetch_allforces($month=false){
         if(!$month){
-            $month=$this->month_fetch();
+            $month=$this->lastupdated_month();
         }
         $this->crime_type=$this->local_crime_categories(true);
         $this->forces=$this->local_forces(true);
