@@ -346,31 +346,39 @@ class PoliceUKDB extends PoliceUK{
     /**
     * Wrapper csv_fetch,csv_unzip,csv_read
     */
-    function datafetch_force($month,$force){
+    function datafetch_force($month,$force,$write){
         if($this->debug){
             echo $force;
         }
-                $this->datafetch_csv_fetch($month,$force);
-                $this->datafetch_csv_unzip($month,$force);
-        $crimes=$this->datafetch_csv_writedb($month,$force);
-        if($this->debug){
-            echo " - ".$crimes;
-            echo PHP_EOL;
+        $this->datafetch_csv_fetch($month,$force);
+        $this->datafetch_csv_unzip($month,$force);
+        if($write){
+            $crimes=$this->datafetch_csv_writedb($month,$force);
+            if($this->debug){
+                echo " - ".$crimes;
+            }
         }
+        echo PHP_EOL;
     }
 
 
     /**
     * Wrapper csv_force for ALL forces
     */
-    function datafetch_allforces($month=false){
+    function datafetch_allforces($month=false,$write=true){
         if(!$month){
             $month=$this->lastupdated_month();
         }
         $this->crime_type=$this->local_crime_categories(true);
         $this->forces=$this->local_forces(true);
+        //just download
         foreach($this->forces as $force_id=>$force_name){
-            $this->datafetch_force($month,$force_id);
+            $this->datafetch_force($month,$force_id,FALSE);
+        }
+        if($write===true){
+            foreach($this->forces as $force_id=>$force_name){
+                $this->datafetch_force($month,$force_id,TRUE);
+            }
         }
     }
 
