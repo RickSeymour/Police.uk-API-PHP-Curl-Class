@@ -1,13 +1,10 @@
-Documentation coming soon!
-RickSeymour.com
 
-Feb2011 - PHP Programmer Available for hire! :)
+Matthew Gribben
 
+Starting to redesign the PoliceUK class. Removed the requirment for auth data as no longer needed by Police.UK
 
 Simply require the police.php and call methods from the $POLICE object
 Returns FALSE or a json decoded associative array
-
-Either edit police.php and insert your username and password (Available from http://www.police.uk/api/docs/signup/) or create a PHP script "inc.credentials.php" and set variables $username & $password
 
 
 require_once('police.php');

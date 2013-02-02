@@ -27,7 +27,6 @@ Class PoliceUK{
     
     public function __construct(){
 
-    	
     	$this->curl_init();
     	
     }
