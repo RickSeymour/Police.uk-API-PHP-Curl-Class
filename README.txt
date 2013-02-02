@@ -3,6 +3,9 @@ Matthew Gribben
 
 Starting to redesign the PoliceUK class. Removed the requirment for auth data as no longer needed by Police.UK
 
+Full API documentation available from http://policeapi2.rkh.co.uk/api/docs/
+
+
 Simply require the police.php and call methods from the $POLICE object
 Returns FALSE or a json decoded associative array
 
