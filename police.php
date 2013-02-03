@@ -57,7 +57,7 @@ Class PoliceUK{
  * @return array|false
  */
     protected function call($url){
-        $this->curl_auth();
+        
         $callurl=$this->baseUrl.$url;
         $this->setopt(CURLOPT_URL, $callurl);
         $result = curl_exec($this->curl);
