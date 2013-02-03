@@ -243,6 +243,4 @@ Class PoliceUK{
 
 
 }
-/* END OF CLASS */
-$POLICE=new PoliceUK();
 
