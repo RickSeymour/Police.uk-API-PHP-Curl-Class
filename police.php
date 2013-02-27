@@ -1,20 +1,12 @@
 <?php
 /**
  * Curl Wrapper for Police.uk API
- * @author RickSeymour.com
- * @link http://www.rickseymour.com
+ * @author Matthew Gribben (Originally Rick Seymour)
+ * 
  */
 
 
-$username="";
-$password="";
-
-
 if(!function_exists('curl_init')){die("NO CURL!");}
-
-if(file_exists(__DIR__."/inc.credentials.php")){
-    include(__DIR__."/inc.credentials.php");
-}
 
 
 /**
@@ -22,8 +14,6 @@ if(file_exists(__DIR__."/inc.credentials.php")){
  */
 Class PoliceUK{
     protected $baseUrl  ="http://policeapi2.rkh.co.uk/api/";
-    private $username   =false;
-    private $password   =false;
     public $curl        =null;
     public $returnraw   =false;
     public $debug       =false;
@@ -34,33 +24,11 @@ Class PoliceUK{
 /**
  * Contructor
  */
-    function PoliceUK(){
-        $this->curl_init();
-        $this->curl_auth();
-    }
+    
+    public function __construct(){
 
-
-/**
- * Authorises the CURL object
- * @global username,password
- */
-    protected function curl_auth(){
-        global $username,$password;
-        if(!$this->username){
-            if($username && strlen($username)){
-                $this->username=$username;
-            } else {
-                die("Username required for Police.uk".PHP_EOL);
-            }
-        }
-        if(!$this->password){
-            if($password && strlen($password)){
-                $this->password=$password;
-            } else {
-                die("Password required for Police.uk".PHP_EOL);
-            }
-        }
-        $this->setopt(CURLOPT_USERPWD,$this->username.":".$this->password);
+    	$this->curl_init();
+    	
     }
 
 
@@ -89,7 +57,7 @@ Class PoliceUK{
  * @return array|false
  */
     protected function call($url){
-        $this->curl_auth();
+        
         $callurl=$this->baseUrl.$url;
         $this->setopt(CURLOPT_URL, $callurl);
         $result = curl_exec($this->curl);
@@ -275,6 +243,4 @@ Class PoliceUK{
 
 
 }
-/* END OF CLASS */
-$POLICE=new PoliceUK();
 
